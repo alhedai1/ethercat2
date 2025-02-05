@@ -7,6 +7,8 @@ extern "C" {
 #include <iostream>
 #include <cmath>
 #include <chrono>
+#include <thread>
+#include <atomic>
 
 ///////// Object Dictionary for EPOS4 //////////
 
@@ -64,7 +66,7 @@ extern "C" {
 #define OD_AXIS 0X3000
 
 // Control Word (Homing or PPM mode)
-#define CONTROL_WORD_HM_START 0X001F
+// #define CONTROL_WORD_HM_START 0X001F
 #define CONTROL_WORD_PP_CHANGE 0X003F
 #define CONTROL_WORD_PP_CHANGE_REL 0X007F
 #define CONTROL_WORD_PP_NEW 0X002F

@@ -81,8 +81,8 @@ class EthercatMaster {
     }
 
     void moveAll(EthercatMotor &knee, int kneePosition, int kneeVelocity, EthercatMotor &thigh, int thighPosition, int thighVelocity) {
-        knee.movePP(kneePosition, kneeVelocity);
-        thigh.movePP(thighPosition, thighVelocity);
+        knee.moveRelPP(kneePosition, kneeVelocity);
+        thigh.moveRelPP(thighPosition, thighVelocity);
     }
 
     void gait(EthercatMotor *knee, EthercatMotor *thigh, double AMPLITUDE1, double AMPLITUDE2, double FREQUENCY) {
@@ -134,6 +134,25 @@ class EthercatMaster {
                 thigh->moveToPosition(target_position2);
             }
         }
+    }
+
+    void controlLoop(EthercatMotor *knee) {
+        bool takingInput = true;
+        while (takingInput) {
+            int kneeTargetPosition;
+            std::cout << "Knee Target Position: ";
+            std::cin >> kneeTargetPosition;
+
+            
+
+            char choice;
+            std::cout << "Continue? (y/n)";
+            std::cin >> choice;
+            if (choice != 'y' && choice != 'Y'){
+                break;
+            }
+        }
+
     }
 
     void close() {
