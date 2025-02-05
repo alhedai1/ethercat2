@@ -77,7 +77,7 @@ public:
         // }
 
         // Set interpolation time for CSP
-        write_sdo_u8(motor_id, 0X60C2, 0x01, 10);
+        write_sdo_u8(motor_id, 0X60C2, 0x01, 5);
     }
 
     void print_config() {
@@ -278,8 +278,7 @@ public:
         }
     }
 
-    // CSP
-    bool moveToPosition(int position) {
+    bool moveCspOnce(int position) { // send one CSP command
         motor_rxpdo->control_word = CONTROL_WORD_CSP;
         motor_rxpdo->mode_of_operation = MODE_CSP;
         motor_rxpdo->target_pos = position;
@@ -295,14 +294,10 @@ public:
         return diff_inc;
     }
 
-    void changeMainSensor(uint32 config) {
-        write_sdo_u32(motor_id, OD_AXIS, 0x02, config);
-    }
-
-    void moveRelPP(int position, int velocity) {
+    void moveRelPP(int position, int velocity) { // move to target position using PP
         bool set = false;
         int initial_pos = motor_txpdo->actual_pos;
-        int targetReached = 0;
+        // int targetReached = 0;
         while (1) {
             exchange();
             // print_current_position();
@@ -317,51 +312,51 @@ public:
                 motor_rxpdo->control_word = CONTROL_WORD_PP_CHANGE;
                 set = true;
             }
-            targetReached = (motor_txpdo->status_word & 0x400) >> 10;
+            // targetReached = (motor_txpdo->status_word & 0x400) >> 10;
             if ((motor_rxpdo->target_pos) == motor_txpdo->actual_pos){
                 break;
             }
         }
     }
 
-    void moveRelCSP(int relPos) { // 5000
-        print_current_position();
-        int pos = currentPosition();
-        int target = pos + relPos; // 5000, 10000
-        // int diff = position - currentPosition();
-        int diff = relPos;
-        int sign = diff/abs(diff);
-        int inc = sign*100;
-        int demand;
-        read_sdo_s32(motor_id, OD_POSITION_DEMAND, 0x00, &demand);
-        printf("Current position: %d, Target position: %d\n", pos, target);
-        motor_rxpdo->control_word = 0x0;
-        motor_rxpdo->mode_of_operation = MODE_CSP;
-        motor_rxpdo->target_pos = currentPosition();
-        exchange();
-        while (1) {
-            exchange();
-            Status stat = check_status();
-            if (stat == Status::CONT){
-                continue;
-            }
-            if ((sign > 0 && pos > target)){
-                printf("here\n");
-                printf("sign: %d, pos: %d, target: %d\n", sign, pos, target);
-                motor_rxpdo->target_pos = currentPosition();
-                break;
-            }
-            motor_rxpdo->control_word = CONTROL_WORD_CSP;
-            motor_rxpdo->mode_of_operation = MODE_CSP;
-            motor_rxpdo->target_pos = pos;
-            pos += inc;
-        }
-    }
+    // void moveRelCSP(int relPos) { 
+    //     int pos = currentPosition();
+    //     int target = pos + relPos; // 5000, 10000
+    //     // int diff = position - currentPosition();
+    //     int diff = relPos;
+    //     int sign = diff/abs(diff);
+    //     int inc = sign*100;
+    //     int demand;
+    //     read_sdo_s32(motor_id, OD_POSITION_DEMAND, 0x00, &demand);
+    //     printf("Current position: %d, Target position: %d\n", pos, target);
+    //     motor_rxpdo->control_word = 0x0;
+    //     motor_rxpdo->mode_of_operation = MODE_CSP;
+    //     motor_rxpdo->target_pos = currentPosition();
+    //     exchange();
+    //     while (1) {
+    //         exchange();
+    //         Status stat = check_status();
+    //         if (stat == Status::CONT){
+    //             continue;
+    //         }
+    //         if ((sign > 0 && pos > target)){
+    //             printf("here\n");
+    //             printf("sign: %d, pos: %d, target: %d\n", sign, pos, target);
+    //             motor_rxpdo->target_pos = currentPosition();
+    //             break;
+    //         }
+    //         motor_rxpdo->control_word = CONTROL_WORD_CSP;
+    //         motor_rxpdo->mode_of_operation = MODE_CSP;
+    //         motor_rxpdo->target_pos = pos;
+    //         pos += inc;
+    //     }
+    // }
 
-    void takeInput(std::atomic<int>& target_pos, std::atomic<bool>&reached){
+    void takeInput(std::atomic<int>& target_pos, std::atomic<int>& inc, std::atomic<bool>&reached){
         while(1){
             int new_target;
             std::cin >>new_target;
+            inc = new_target > 0 ? 10 : -10;
             target_pos.store(target_pos.load() + new_target);
             reached = false;
             while(!reached){ 
@@ -369,9 +364,8 @@ public:
         }
     }
 
-    void moveRelCSPTh(std::atomic<int>& target_pos, std::atomic<bool>&reached){
+    void moveRelCSPTh(std::atomic<int>& target_pos, std::atomic<int>& inc, std::atomic<bool>&reached){
         int current_pos = currentPosition();
-        int inc = 100;
         while(1){
             exchange();
             Status stat = check_status();
@@ -380,9 +374,9 @@ public:
             }
             if (!reached){
                 current_pos += inc;
-            }
-            if (current_pos >= target_pos){
-                reached = true;
+                if ((inc > 0 && current_pos >= target_pos || (inc < 0 && current_pos <= target_pos))){
+                    reached = true;
+                }
             }
             motor_rxpdo->control_word = CONTROL_WORD_CSP;
             motor_rxpdo->mode_of_operation = MODE_CSP;

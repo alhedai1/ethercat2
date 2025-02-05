@@ -67,6 +67,6 @@ const int CYCLE_TIME_MS = 10;     // EtherCAT cycle time in milliseconds
 // 1 degree = 8192/360 abs = 1100*(8192/360) inc
 
 
-during second moveRelPP call:
-	target reached bit is on
-	setpoint acknowledged bit is on
+// during second moveRelPP call:
+// 	target reached bit is on
+// 	setpoint acknowledged bit is on

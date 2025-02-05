@@ -123,7 +123,7 @@ void exchange() {
     ec_send_processdata();
     wkc = ec_receive_processdata(EC_TIMEOUTRET);
     // std::cout << "Sent and received process data. Working Counter = " << wkc << std::endl;
-    osal_usleep(10000); // 10 ms
+    osal_usleep(5000); // 5 ms
 }
 
 // int deg_to_inc(int deg) {

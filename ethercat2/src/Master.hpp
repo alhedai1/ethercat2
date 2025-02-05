@@ -20,7 +20,7 @@ class EthercatMaster {
     // Initialize
     int init() {
         try {
-            if (ec_init("enp4s0")) {
+            if (ec_init("eth0")) {
                 std::cout << "EtherCAT initialized" << std::endl;
                 if (ec_config_init(false) > 0) {
                     std::cout << ec_slavecount << " slaves found and initialized" << std::endl;
@@ -80,10 +80,10 @@ class EthercatMaster {
         return 1;
     }
 
-    void moveAll(EthercatMotor &knee, int kneePosition, int kneeVelocity, EthercatMotor &thigh, int thighPosition, int thighVelocity) {
-        knee.moveRelPP(kneePosition, kneeVelocity);
-        thigh.moveRelPP(thighPosition, thighVelocity);
-    }
+    // void moveAll(EthercatMotor &knee, int kneePosition, int kneeVelocity, EthercatMotor &thigh, int thighPosition, int thighVelocity) {
+    //     knee.moveRelPP(kneePosition, kneeVelocity);
+    //     thigh.moveRelPP(thighPosition, thighVelocity);
+    // }
 
     void gait(EthercatMotor *knee, EthercatMotor *thigh, double AMPLITUDE1, double AMPLITUDE2, double FREQUENCY) {
         const double PERIOD = 1/FREQUENCY;
@@ -108,8 +108,8 @@ class EthercatMaster {
             std::chrono::duration<double> elapsed = now - start_time;
             double t = elapsed.count();
             if (t >= (PERIOD + ((M_PI/4)/omega))){
-                knee->moveToPosition(0);
-                thigh->moveToPosition(0);
+                knee->moveCspOnce(0);
+                thigh->moveCspOnce(0);
                 exchange();
                 break;
             }
@@ -120,7 +120,6 @@ class EthercatMaster {
             else {
                 scale = 1.0;
             }
-
             double target_position1 = scale * AMPLITUDE1 * sin((omega*t) - (M_PI/4)) + kneeOFFSET;
             double target_position2 = scale * AMPLITUDE2 * sin(omega*t) + thighOFFSET;
 
@@ -128,31 +127,66 @@ class EthercatMaster {
             //     target_position1 = 0;
             // }
             if ((omega*t) >= (M_PI/4)){
-                knee->moveToPosition(target_position1);
+                knee->moveCspOnce(target_position1);
             }
             if (t < PERIOD){
-                thigh->moveToPosition(target_position2);
+                thigh->moveCspOnce(target_position2);
             }
         }
     }
 
-    void controlLoop(EthercatMotor *knee) {
-        bool takingInput = true;
-        while (takingInput) {
-            int kneeTargetPosition;
+    void takeInputs(std::atomic<int>& kneeTarget, std::atomic<int>& thighTarget, std::atomic<int>& kneeInc, std::atomic<int>& thighInc, std::atomic<bool>&kneeReached, std::atomic<bool>&thighReached){
+        osal_usleep(500000);
+        while(1){
+            int kneeNewTarget;
+            int thighNewTarget;
+
             std::cout << "Knee Target Position: ";
-            std::cin >> kneeTargetPosition;
+            std::cin >> kneeNewTarget;
+            std::cout << "Thigh Target Position: ";
+            std::cin >> thighNewTarget;
 
+            if (kneeNewTarget > 0){kneeInc = 50;}
+            else if (kneeNewTarget < 0){kneeInc = -50;}
+            else {kneeInc = 0;}
+            if (thighNewTarget > 0){thighInc = 50;}
+            else if (thighNewTarget < 0){thighInc = -50;}
+            else {thighInc = 0;}
             
-
-            char choice;
-            std::cout << "Continue? (y/n)";
-            std::cin >> choice;
-            if (choice != 'y' && choice != 'Y'){
-                break;
+            kneeTarget.store(kneeTarget.load() + kneeNewTarget);
+            thighTarget.store(thighTarget.load() + thighNewTarget);
+            kneeReached = false;
+            thighReached = false;
+            while(!kneeReached || !thighReached){
             }
         }
+    }
 
+    void controlLoop(EthercatMotor *knee, EthercatMotor *thigh, std::atomic<int>& kneeTarget, std::atomic<int>& thighTarget, std::atomic<int>& kneeInc, std::atomic<int>& thighInc, std::atomic<bool>&kneeReached, std::atomic<bool>&thighReached) {
+        int kneeCurrPos = knee->currentPosition();
+        int thighCurrPos = thigh->currentPosition();
+        while(1){
+            exchange();
+            Status statk = knee->check_status();
+            Status statth = thigh->check_status();
+            if (statk == Status::CONT || statth == Status::CONT){
+                continue;
+            }
+            if (!kneeReached){
+                kneeCurrPos += kneeInc;
+                if ((kneeInc > 0 && kneeCurrPos >= kneeTarget || (kneeInc < 0 && kneeCurrPos <= kneeTarget))){
+                    kneeReached = true;
+                }
+            }
+            if (!thighReached){
+                thighCurrPos += thighInc;
+                if ((thighInc > 0 && thighCurrPos >= thighTarget || (thighInc < 0 && thighCurrPos <= thighTarget))){
+                    thighReached = true;
+                }
+            }
+            knee->moveCspOnce(kneeCurrPos);
+            thigh->moveCspOnce(thighCurrPos);
+        }
     }
 
     void close() {
