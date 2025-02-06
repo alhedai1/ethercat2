@@ -65,7 +65,7 @@ const int CYCLE_TIME_MS = 10;     // EtherCAT cycle time in milliseconds
 
 // 8192/360 = increments for 1 degree
 // 1 degree = 8192/360 abs = 1100*(8192/360) inc
-
+// to move 1 degree on abs: move incremental 1100*(8192/360) counts
 
 // during second moveRelPP call:
 // 	target reached bit is on

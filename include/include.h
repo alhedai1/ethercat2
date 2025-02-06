@@ -133,12 +133,19 @@ typedef struct PACKED
         int8 mode_of_operation_display;
 } motor_txpdo_t;
 
+typedef struct PACKED
+{
+        std::atomic<int> targetPos;
+        std::atomic<bool> reached;
+        std::atomic<int> inc;
+} controlParam_t;
+
 // 13 bits -> 8192 increments/revolution
 // inc to deg: inc/8192 -> 1 rev -> 360 deg
 
 // deg to inc (knee motor)
-int deg_to_inc(int deg);
-int inc_to_deg(int inc);
+#define DEG_TO_INC_KNEE(DEG) (1100*(8192/360)*DEG);
+#define INC_TO_DEG_KNEE(INC) ((INC/1100)/(8192/360));
 
 void exchange();
 

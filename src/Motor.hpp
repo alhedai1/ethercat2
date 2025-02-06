@@ -7,14 +7,16 @@
 class EthercatMotor {
 private:
     int motor_id; // 1, 2, ... (0 is master)
-    motor_rxpdo_t *motor_rxpdo;
-    motor_txpdo_t *motor_txpdo;
+    motor_rxpdo_t *motor_rxpdo; // pointer to outputs
+    motor_txpdo_t *motor_txpdo; // pointer to inputs
 
 public:
     EthercatMotor(int id) : motor_id(id) {}
     ~EthercatMotor(){}
 
-    void initialize() {
+    controlParam_t controlParam;
+
+    void configure() {
         std::cout << "Initializing motor " << motor_id << std::endl;
         // RxPDO assign
         write_sdo_u8(motor_id, OD_RXPDO_ASSIGN, 0x00, 1);
@@ -47,13 +49,6 @@ public:
         write_sdo_s32(motor_id, OD_SOFTWARE_LIMIT, 0x01, -2147483648);
         write_sdo_s32(motor_id, OD_SOFTWARE_LIMIT, 0x02, 2147483647);
 
-        // Set Homing parameters
-        write_sdo_s32(motor_id, OD_HOME_POSITION, 0x00, 0);
-        write_sdo_s8(motor_id, OD_HOMING_METHOD, 0x00, 7);
-        write_sdo_u32(motor_id, OD_HOMING_SPEED, 0x01, 50);
-        write_sdo_u32(motor_id, OD_HOMING_SPEED, 0x02, 50);
-        write_sdo_u32(motor_id, OD_HOMING_ACCELERATION, 0x00, 10000);
-
         // Set polarity
         int polarity = 0;
         if (polarity == 0){
@@ -63,18 +58,11 @@ public:
             write_sdo_u32(motor_id, OD_AXIS, 0x04, 0x00000001);
         }
 
-        // // Turn sensor supervision off for thigh motor to prevent initial jerk
-        // if (motor_id == 2){
-        //     uint32 axis_config;
-        //     read_sdo_u32(motor_id, OD_AXIS, 0x04, &axis_config);
-        //     write_sdo_u32(motor_id, OD_AXIS, 0x04, (axis_config | SENSOR_SUPERVISE_BIT));
-        // }
-
         // Set Main Sensor and Process Value Reference for motor 1
         // if (motor_id == 1){                        
             // write_sdo_u32(motor_id, OD_AXIS, 0x02, 0x4025111); // main sensor = SSI (on gear), process val ref = on gear
-        write_sdo_u32(motor_id, OD_AXIS, 0x02, 0x4011111); // main sensor = inc (on motor), process val ref = on motor
         // }
+        // write_sdo_u32(motor_id, OD_AXIS, 0x02, 0x4011111); // main sensor = inc (on motor), process val ref = on motor
 
         // Set interpolation time for CSP
         write_sdo_u8(motor_id, 0X60C2, 0x01, 5);

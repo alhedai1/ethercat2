@@ -14,7 +14,7 @@ OBJ = $(SRC:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 $(info SRC = $(SRC))
 $(info OBJ = $(OBJ))
 
-OUTPUT = program
+OUTPUT = main
 
 $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
