@@ -94,7 +94,7 @@ class EthercatMaster {
         const int kneeOFFSET = knee->currentPosition();
         const int thighOFFSET = thigh->currentPosition();
         double omega = 2 * M_PI * FREQUENCY; // Angular frequency
-        double scale = 0.0;
+        double scale;
         double ramp_time = 2.0;
         auto start_time = std::chrono::steady_clock::now();
         Status statk;
@@ -102,7 +102,6 @@ class EthercatMaster {
 
         while (1) {
             exchange();
-            // thigh->print_torque();
             statk = knee->check_status();
             statth = thigh->check_status();
             if (statk == Status::CONT || statth == Status::CONT) {
@@ -127,9 +126,6 @@ class EthercatMaster {
             double target_position1 = scale * AMPLITUDE1 * sin((omega*t) - (M_PI/4)) + kneeOFFSET;
             double target_position2 = scale * AMPLITUDE2 * sin(omega*t) + thighOFFSET;
 
-            // if ((omega*t) < (M_PI/4)){
-            //     target_position1 = 0;
-            // }
             if ((omega*t) >= (M_PI/4)){
                 knee->moveCspOnce(target_position1);
             }
@@ -139,7 +135,7 @@ class EthercatMaster {
         }
     }
 
-    void takeInputs(controlParam_t& kneeControlParam, controlParam_t& thighControlParam, bool& done){
+    void takeInputs(controlParam_t& kneeControlParam, controlParam_t& thighControlParam, std::atomic<bool>& done){
         osal_usleep(500000);
         while(1){
             char choice;
@@ -177,7 +173,7 @@ class EthercatMaster {
         }
     }
 
-    void controlLoop(EthercatMotor *knee, EthercatMotor *thigh, controlParam_t& kneeControlParam, controlParam_t& thighControlParam, bool& done) {
+    void controlLoop(EthercatMotor *knee, EthercatMotor *thigh, controlParam_t& kneeControlParam, controlParam_t& thighControlParam, std::atomic<bool>& done) {
         int kneeCurrPos = knee->currentPosition();
         int thighCurrPos = thigh->currentPosition();
         kneeControlParam.targetPos = knee->currentPosition();

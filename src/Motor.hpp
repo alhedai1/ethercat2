@@ -266,11 +266,10 @@ public:
         }
     }
 
-    bool moveCspOnce(int position) { // send one CSP command
+    void moveCspOnce(int position) { // send one CSP command
         motor_rxpdo->control_word = CONTROL_WORD_CSP;
         motor_rxpdo->mode_of_operation = MODE_CSP;
         motor_rxpdo->target_pos = position;
-        return false;
     }
 
     // Horizontal position for knee motor is almost 5900 (SSI)
