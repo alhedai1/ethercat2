@@ -210,51 +210,58 @@ public:
         printf("Error code: 0x%x\n", motor_txpdo->error_code);
     }
 
-    
     Status check_status() {
         // Check STATUS WORD
         uint16 status;
+        uint16 lower_4;
         status = motor_txpdo->status_word;
+        lower_4 = status & 0x000F;
         // std::cout << "Motor " << motor_id << " Status word: 0x" << std::hex << status << std::dec << std::endl;
 
-        if (stateOperationEnabled(status)){
-            std::cout << "Operation Enabled." << std::endl;
-            return Status::FORWARD;
-        }
-        else if (stateSwitchedOn(status)){
-            std::cout << "Switched On. Now Enabling Operation..." << std::endl;
-            motor_rxpdo->control_word = 0xf;
-            return Status::CONT;
-        }
-        else if (stateReadyswitchOn(status)){
-            std::cout << "Ready to Switch On. Now Switching On..." << std::endl;
-            motor_rxpdo->control_word = 0x7;
-            return Status::CONT;
-        }
-        else if (stateSwitchOnDisabled(status)){
-            std::cout << "Switch On Disabled. Shutting Down..." << std::endl;
-            motor_rxpdo->control_word = 0x6;
-            return Status::CONT;
-        }
-        else if (stateNotReadySwitchOn(status)){
-            std::cout << "Not Ready to Switch On. Auto Transition to Switch On Disabled..." << std::endl;
-            return Status::CONT;
-        }
-        else if (stateFault(status)){
-            std::cout << "Fault. Now Fault Reset..." << std::endl;
-            motor_rxpdo->control_word |= BIT_VALUE(7);
-            return Status::CONT;
-        }
-        else if (stateFaultReact(status)){
-            std::cout << "Fault Reaction Active..." << std::endl;
-            return Status::CONT;
-        }
-        else if (stateQuickStop(status)){
-            std::cout << "Quick Stop Active..." << std::endl;
-            return Status::CONT;
+        if ((lower_4 | (status & (7 << 4))) != STATUS_OPERATION_ENABLED){
+            if (status == STATUS_NOT_READY_SWITCH){
+                return Status::CONT;
+            }
+            else if ((lower_4 | (status & (1 << 6))) == STATUS_SWITCH_ON_DISABLED){ // 0x240
+                printf("Switch on disabled.\n");
+                motor_rxpdo->control_word = 0x6;
+                return Status::CONT;
+            }
+            else if ((lower_4 | (status & (3 << 5))) == STATUS_READY_SWITCH_ON){ // 0x221
+                printf("Ready switch on.\n");
+                motor_rxpdo->control_word = 7;
+                return Status::CONT;
+            }
+            else if ((lower_4 | (status & (7 << 4))) == STATUS_SWITCH_ON){
+                printf("Switch on.\n");
+                motor_rxpdo->control_word = 0xf;
+                return Status::CONT;
+            }
+            else if ((lower_4 | (status & (3 << 5))) == STATUS_QUICK_STOP_A){
+                printf("Quick stop active.\n");
+                return Status::CONT;
+            }
+            else if ((lower_4 | (status & (1 << 6))) == STATUS_FAULT_REACT){
+                printf("Fault react active.\n");
+                return Status::CONT;
+            }
+            else if ((lower_4 | (status & (1 << 6))) == STATUS_FAULT){
+                printf("Fault.\n");
+                motor_rxpdo->control_word = (1 << 7);
+                return Status::CONT;
+            }
+            else {
+                printf("Unknown status: 0x%x\n", status);
+                return Status::CONT;
+            }
         }
         else {
-            std::cout << "Unknown Status." << std::endl;
+            // std::cout << "Operation Enabled." << std::endl;
+            return Status::FORWARD;
+        }
+        if ((motor_txpdo->mode_of_operation_display == MODE_PP) && (status && (1<<12))){
+            motor_rxpdo->control_word = CONTROL_WORD_PP_NEW;
+            motor_rxpdo->mode_of_operation = MODE_PP;
             return Status::CONT;
         }
     }
@@ -354,7 +361,7 @@ public:
             }
             if (!reached){
                 current_pos += inc;
-                if (((inc > 0 && current_pos >= target_pos) || (inc < 0 && current_pos <= target_pos))){
+                if ((inc > 0 && current_pos >= target_pos || (inc < 0 && current_pos <= target_pos))){
                     reached = true;
                 }
             }

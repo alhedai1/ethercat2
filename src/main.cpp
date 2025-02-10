@@ -40,12 +40,12 @@ int main(int argc, char *argv[]) {
         int kneeHome = knee->getHomeOffset();
         knee->moveRelPP(kneeHome, 100);
 
-        std::atomic<bool> done = false;
-        std::thread inputThread([master, knee, thigh, &done]() {master->takeInputs(knee->controlParam, thigh->controlParam, done);});
-        std::thread controlThread([master, knee, thigh, &done]() {master->controlLoop(knee, thigh, knee->controlParam, thigh->controlParam, done);});
+        // std::atomic<bool> done = false;
+        // std::thread inputThread([master, knee, thigh, &done]() {master->takeInputs(knee->controlParam, thigh->controlParam, done);});
+        // std::thread controlThread([master, knee, thigh, &done]() {master->controlLoop(knee, thigh, knee->controlParam, thigh->controlParam, done);});
         
-        inputThread.join();
-        controlThread.join();
+        // inputThread.join();
+        // controlThread.join();
         
         // master->gait(knee, thigh, 30000, 20000, 0.1);
 

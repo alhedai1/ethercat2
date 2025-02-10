@@ -66,7 +66,7 @@ extern "C" {
 #define OD_AXIS 0X3000
 
 // Control Word (Homing or PPM mode)
-// #define CONTROL_WORD_HM_START 0X001F
+#define CONTROL_WORD_HM_START 0X001F
 #define CONTROL_WORD_PP_CHANGE 0X003F
 #define CONTROL_WORD_PP_CHANGE_REL 0X007F
 #define CONTROL_WORD_PP_NEW 0X002F
@@ -77,15 +77,23 @@ extern "C" {
 #define MODE_PP 0X01
 #define MODE_CSP 0X08
 
+// // Status words
+// #define STATUS_NOT_READY_SWITCH 0X0
+// #define STATUS_SWITCH_ON_DISABLED (1 << 6)
+// #define STATUS_READY_SWITCH_ON ((1 << 5) | 1)
+// #define STATUS_SWITCH_ON ((1 << 5) | 3)
+// #define STATUS_OPERATION_ENABLED ((1 << 5) | (1 << 4) | 7)
+// #define STATUS_QUICK_STOP_A 0X7
+// #define STATUS_FAULT_REACT 0XF
+// #define STATUS_FAULT 0X8
+
 // Status words
-#define STATUS_NOT_READY_SWITCH 0X0
-#define STATUS_SWITCH_ON_DISABLED (1 << 6)
-#define STATUS_READY_SWITCH_ON ((1 << 5) | 1)
-#define STATUS_SWITCH_ON ((1 << 5) | 3)
-#define STATUS_OPERATION_ENABLED ((1 << 5) | (1 << 4) | 7)
-#define STATUS_QUICK_STOP_A 0X7
-#define STATUS_FAULT_REACT 0XF
-#define STATUS_FAULT 0X8
+#define READY_SWITCH_ON_BIT 0
+#define SWITCHED_ON_BIT 1
+#define OPERATION_ENABLED_BIT 2
+#define QUICK_STOP_A_BIT 0X7
+#define FAULT_REACT_BIT 0XF
+#define FAULT_BIT 0X8
 
 // Status word home bits
 #define STATUS_HOME_ERROR (1 << 13)
@@ -94,8 +102,14 @@ extern "C" {
 
 #define SENSOR_SUPERVISE_BIT (1 << 8)
 
+// Set/Clear Bit
+#define BIT_VALUE(bit) (1 << bit)
+#define IS_BIT_SET(val, bit) (val & BIT_VALUE(bit))
+#define IS_BIT_CLEAR(val, bit) !(val & BIT_VALUE(bit))
+#define SET_BIT(val, bit) (val | BIT_VALUE(bit))
+#define CLEAR_BIT(val, bit) (val & ^BIT_VALUE(bit))
+
 //////////// SDO read/write wrapper functions ///////////////
-#include "soem/ethercat.h"
 
 int read_sdo_u8(uint16 slave, uint16 index, uint8 subindex, uint8 *data);
 int read_sdo_u16(uint16 slave, uint16 index, uint8 subindex, uint16 *data);
@@ -111,6 +125,14 @@ int write_sdo_s8(uint16 slave, uint16 index, uint8 subindex, int8 data);
 int write_sdo_s16(uint16 slave, uint16 index, uint8 subindex, int16 data);
 int write_sdo_s32(uint16 slave, uint16 index, uint8 subindex, int32 data);
 
+bool stateOperationEnabled(const uint16& status);
+bool stateSwitchedOn(const uint16& status);
+bool stateReadyswitchOn(const uint16& status);
+bool stateSwitchOnDisabled(const uint16& status);
+bool stateNotReadySwitchOn(const uint16& status);
+bool stateFault(const uint16& status);
+bool stateFaultReact(const uint16& status);
+bool stateQuickStop(const uint16& status);
 
 #include <cstdio>
 
@@ -133,7 +155,7 @@ typedef struct PACKED
         int8 mode_of_operation_display;
 } motor_txpdo_t;
 
-typedef struct PACKED
+typedef struct
 {
         std::atomic<int> targetPos;
         std::atomic<bool> reached;

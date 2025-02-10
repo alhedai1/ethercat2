@@ -190,13 +190,13 @@ class EthercatMaster {
             }
             if (!kneeControlParam.reached){
                 kneeCurrPos += kneeControlParam.inc;
-                if ((kneeControlParam.inc > 0 && kneeCurrPos >= kneeControlParam.targetPos || (kneeControlParam.inc < 0 && kneeCurrPos <= kneeControlParam.targetPos))){
+                if (((kneeControlParam.inc > 0 && kneeCurrPos >= kneeControlParam.targetPos) || (kneeControlParam.inc < 0 && kneeCurrPos <= kneeControlParam.targetPos))){
                     kneeControlParam.reached = true;
                 }
             }
             if (!thighControlParam.reached){
                 thighCurrPos += thighControlParam.inc;
-                if ((thighControlParam.inc > 0 && thighCurrPos >= thighControlParam.targetPos || (thighControlParam.inc < 0 && thighCurrPos <= thighControlParam.targetPos))){
+                if (((thighControlParam.inc > 0 && thighCurrPos >= thighControlParam.targetPos) || (thighControlParam.inc < 0 && thighCurrPos <= thighControlParam.targetPos))){
                     thighControlParam.reached = true;
                 }
             }

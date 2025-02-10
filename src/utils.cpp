@@ -129,3 +129,43 @@ void exchange() {
 // int deg_to_inc(int deg) {
 //     deg * 
 // }
+
+bool stateOperationEnabled(const uint16& status){
+    uint16 lower4 = status & 0xf;
+    return (lower4 == 7 && IS_BIT_SET(status, 5) && IS_BIT_CLEAR(status, 6));
+}
+
+bool stateSwitchedOn(const uint16& status){
+    uint16 lower4 = status & 0xf;
+    return (lower4 == 3 && IS_BIT_SET(status, 5) && IS_BIT_CLEAR(status, 6));
+}
+
+bool stateReadyswitchOn(const uint16& status){
+    uint16 lower4 = status & 0xf;
+    return (lower4 == 1 && IS_BIT_SET(status, 5) && IS_BIT_CLEAR(status, 6));
+}
+
+bool stateSwitchOnDisabled(const uint16& status){
+    uint16 lower4 = status & 0xf;
+    return (lower4 == 0 && IS_BIT_CLEAR(status, 5) && IS_BIT_SET(status, 6));
+}
+
+bool stateNotReadySwitchOn(const uint16& status){
+    uint16 lower4 = status & 0xf;
+    return (lower4 == 0 && IS_BIT_CLEAR(status, 5) && IS_BIT_CLEAR(status, 6));
+}
+
+bool stateFault(const uint16& status){
+    uint16 lower4 = status & 0xf;
+    return (lower4 == 8 && IS_BIT_CLEAR(status, 5) && IS_BIT_CLEAR(status, 6));
+}
+
+bool stateFaultReact(const uint16& status){
+    uint16 lower4 = status & 0xf;
+    return (lower4 == 0xf && IS_BIT_CLEAR(status, 5) && IS_BIT_CLEAR(status, 6));
+}
+
+bool stateQuickStop(const uint16& status){
+    uint16 lower4 = status & 0xf;
+    return (lower4 == 7 && IS_BIT_CLEAR(status, 5) && IS_BIT_CLEAR(status, 6));
+}
