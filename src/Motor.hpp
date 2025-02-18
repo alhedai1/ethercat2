@@ -18,7 +18,7 @@ public:
     int id;
 
     void configure() {
-        std::cout << "Configuring motor and mapping PDOs" << motor_id << std::endl;
+        std::cout << "Configuring motor " << motor_id << " and mapping PDOs" << std::endl;
         // RxPDO assign
         write_sdo_u8(motor_id, OD_RXPDO_ASSIGN, 0x00, 1);
         write_sdo_u16(motor_id, OD_RXPDO_ASSIGN, 0x01, OD_RXPDO_MAP_1);

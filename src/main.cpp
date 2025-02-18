@@ -37,8 +37,8 @@ int main(int argc, char *argv[]) {
 
             osal_usleep(500000);
 
-            master->takeInputs();
-            master->controlLoop();
+            // master->takeInputs();
+            // master->controlLoop();
             
             // master->gait(knee, thigh, 30000, 20000, 0.1);
         }

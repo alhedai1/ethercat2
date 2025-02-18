@@ -31,9 +31,11 @@ class EthercatMaster {
                     exit(0);
                 }
             }
-            std::cout << "Could not find any slaves" << std::endl;
-            close();
-            exit(0);
+            else{
+                std::cout << "Could not find any slaves" << std::endl;
+                close();
+                exit(0);
+            }
         }
         else {
             std::cout << "Could not initialize EtherCAT" << std::endl;

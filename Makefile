@@ -27,5 +27,6 @@ $(OUTPUT): $(OBJ)
 
 clean:
 	rm -f $(OBJ) $(OUTPUT)
+	rm -r $(OBJ_DIR)
 
 .PHONY: all clean
