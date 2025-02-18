@@ -15,7 +15,7 @@ class EthercatMaster {
     ~EthercatMaster() {}
 
     bool stateOP = false;
-    bool done = false;
+    bool done;
     EthercatMotor* knee;
     EthercatMotor* thigh;
 
@@ -140,6 +140,8 @@ class EthercatMaster {
 
     void takeInputs(){
 
+        done = false;
+
         std::thread inputsThread([&](){
             while(1){
                 char choice;
@@ -198,13 +200,15 @@ class EthercatMaster {
                 }
                 if (!knee->controlParam.reached){
                     kneeCurrPos += knee->controlParam.inc;
-                    if (((knee->controlParam.inc > 0 && kneeCurrPos >= knee->controlParam.targetPos) || (knee->controlParam.inc < 0 && kneeCurrPos <= knee->controlParam.targetPos))){
+                    if (((knee->controlParam.inc > 0 && kneeCurrPos >= knee->controlParam.targetPos) 
+                        || (knee->controlParam.inc < 0 && kneeCurrPos <= knee->controlParam.targetPos))){
                         knee->controlParam.reached = true;
                     }
                 }
                 if (!thigh->controlParam.reached){
                     thighCurrPos += thigh->controlParam.inc;
-                    if (((thigh->controlParam.inc > 0 && thighCurrPos >= thigh->controlParam.targetPos) || (thigh->controlParam.inc < 0 && thighCurrPos <= thigh->controlParam.targetPos))){
+                    if (((thigh->controlParam.inc > 0 && thighCurrPos >= thigh->controlParam.targetPos) 
+                        || (thigh->controlParam.inc < 0 && thighCurrPos <= thigh->controlParam.targetPos))){
                         thigh->controlParam.reached = true;
                     }
                 }

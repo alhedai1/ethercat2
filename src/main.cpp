@@ -39,9 +39,6 @@ int main(int argc, char *argv[]) {
 
             master->takeInputs();
             master->controlLoop();
-
-            inputThread.join();
-            controlThread.join();
             
             // master->gait(knee, thigh, 30000, 20000, 0.1);
         }
