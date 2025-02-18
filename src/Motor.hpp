@@ -15,9 +15,10 @@ public:
     ~EthercatMotor(){}
 
     controlParam_t controlParam;
+    int id;
 
     void configure() {
-        std::cout << "Initializing motor " << motor_id << std::endl;
+        std::cout << "Configuring motor and mapping PDOs" << motor_id << std::endl;
         // RxPDO assign
         write_sdo_u8(motor_id, OD_RXPDO_ASSIGN, 0x00, 1);
         write_sdo_u16(motor_id, OD_RXPDO_ASSIGN, 0x01, OD_RXPDO_MAP_1);
@@ -45,30 +46,14 @@ public:
         write_sdo_u32(motor_id, OD_TXPDO_MAP_1, 0x06, OD_MODE_OF_OPERATION_DISPLAY_MAP);
         write_sdo_u8(motor_id, OD_TXPDO_MAP_1, 0x00, 6);
 
-        // Set software limit
-        write_sdo_s32(motor_id, OD_SOFTWARE_LIMIT, 0x01, -2147483648);
-        write_sdo_s32(motor_id, OD_SOFTWARE_LIMIT, 0x02, 2147483647);
-
         // Set polarity
-        int polarity = 0;
-        if (polarity == 0){
-            write_sdo_u32(motor_id, OD_AXIS, 0x04, 0x00000000);
-        }
-        if (polarity == 1){
-            write_sdo_u32(motor_id, OD_AXIS, 0x04, 0x00000001);
-        }
-
-        // Set Main Sensor and Process Value Reference for motor 1
-        // if (motor_id == 1){                        
-            // write_sdo_u32(motor_id, OD_AXIS, 0x02, 0x4025111); // main sensor = SSI (on gear), process val ref = on gear
-        // }
-        // write_sdo_u32(motor_id, OD_AXIS, 0x02, 0x4011111); // main sensor = inc (on motor), process val ref = on motor
+        write_sdo_u32(motor_id, OD_AXIS, 0x04, 0x00000000);
 
         // Set interpolation time for CSP
-        write_sdo_u8(motor_id, 0X60C2, 0x01, 5);
+        write_sdo_u8(motor_id, 0X60C2, 0x01, CYCLE_TIME_MS);
     }
 
-    void print_config() {
+    void printConfig() {
         // Print RxPDO/TxPDO assign
         uint8 rxpdo_assign = 0;
         uint8 txpdo_assign = 0;
@@ -168,12 +153,16 @@ public:
         printf("Pole pairs: %d\n", polepairs);
     }
 
-    void set_pdo(motor_rxpdo_t *outputsP, motor_txpdo_t *inputsP) {
-        motor_rxpdo = outputsP;
-        motor_txpdo = inputsP;
+    void setPdo() {
+        motor_rxpdo = (motor_rxpdo_t *)ec_slave[motor_id].outputs;
+        motor_txpdo = (motor_txpdo_t *)ec_slave[motor_id].inputs;
     }
 
-    void print_current_position() {
+    int getMotorId(){
+        return motor_id;
+    }
+
+    void printCurrentPosition() {
         int actual_pos;
         int demand;
         read_sdo_s32(motor_id, OD_POSITION_ACTUAL, 0x00, &actual_pos);
@@ -183,16 +172,17 @@ public:
         printf("Target Position: %d, Actual Position: %d, Demand Position: %d, SSI position raw value: %u\n", motor_rxpdo->target_pos, actual_pos, demand, ssi_val);
     }
 
-    void print_torque() {
+    void printTorque(){
         int16 torque;
         read_sdo_s16(motor_id, OD_TORQUE_ACTUAL, 0x00, &torque);
         printf("Actual Torque: %d\n", torque);
     }
 
     int currentPosition(){
-        int actual_pos;
-        read_sdo_s32(motor_id, OD_POSITION_ACTUAL, 0x00, &actual_pos);
-        return actual_pos;
+        int actualPos;
+        // read_sdo_s32(motor_id, OD_POSITION_ACTUAL, 0x00, &actualPos);
+        actualPos = motor_txpdo->actual_pos;
+        return actualPos;
     }
 
     void printRxPDO() {
@@ -211,51 +201,51 @@ public:
     }
 
     
-    Status check_status() {
+    Status checkStatus() {
         // Check STATUS WORD
         uint16 status;
         status = motor_txpdo->status_word;
         // std::cout << "Motor " << motor_id << " Status word: 0x" << std::hex << status << std::dec << std::endl;
 
         if (stateOperationEnabled(status)){
-            std::cout << "Operation Enabled." << std::endl;
+            // std::cout << "Operation Enabled." << std::endl;
             return Status::FORWARD;
         }
         else if (stateSwitchedOn(status)){
-            std::cout << "Switched On. Now Enabling Operation..." << std::endl;
+            // std::cout << "Switched On. Now Enabling Operation..." << std::endl;
             motor_rxpdo->control_word = 0xf;
             return Status::CONT;
         }
         else if (stateReadyswitchOn(status)){
-            std::cout << "Ready to Switch On. Now Switching On..." << std::endl;
+            // std::cout << "Ready to Switch On. Now Switching On..." << std::endl;
             motor_rxpdo->control_word = 0x7;
             return Status::CONT;
         }
         else if (stateSwitchOnDisabled(status)){
-            std::cout << "Switch On Disabled. Shutting Down..." << std::endl;
+            // std::cout << "Switch On Disabled. Shutting Down..." << std::endl;
             motor_rxpdo->control_word = 0x6;
             return Status::CONT;
         }
         else if (stateNotReadySwitchOn(status)){
-            std::cout << "Not Ready to Switch On. Auto Transition to Switch On Disabled..." << std::endl;
+            // std::cout << "Not Ready to Switch On. Auto Transition to Switch On Disabled..." << std::endl;
             return Status::CONT;
         }
         else if (stateFault(status)){
-            std::cout << "Fault. Now Fault Reset..." << std::endl;
+            // std::cout << "Fault. Now Fault Reset..." << std::endl;
             motor_rxpdo->control_word |= BIT_VALUE(7);
             return Status::CONT;
         }
         else if (stateFaultReact(status)){
-            std::cout << "Fault Reaction Active..." << std::endl;
+            // std::cout << "Fault Reaction Active..." << std::endl;
             return Status::CONT;
         }
         else if (stateQuickStop(status)){
-            std::cout << "Quick Stop Active..." << std::endl;
+            // std::cout << "Quick Stop Active..." << std::endl;
             return Status::CONT;
         }
         else {
-            std::cout << "Unknown Status." << std::endl;
-            return Status::CONT;
+            // std::cout << "Unknown Status." << std::endl;
+            return Status::ABORT;
         }
     }
 
@@ -280,8 +270,8 @@ public:
         // int targetReached = 0;
         while (1) {
             exchange();
-            // print_current_position();
-            Status stat = check_status();
+            // printCurrentPosition();
+            Status stat = checkStatus();
             if (stat == Status::CONT){
                 continue;
             }
@@ -299,39 +289,6 @@ public:
         }
     }
 
-    // void moveRelCSP(int relPos) { 
-    //     int pos = currentPosition();
-    //     int target = pos + relPos; // 5000, 10000
-    //     // int diff = position - currentPosition();
-    //     int diff = relPos;
-    //     int sign = diff/abs(diff);
-    //     int inc = sign*100;
-    //     int demand;
-    //     read_sdo_s32(motor_id, OD_POSITION_DEMAND, 0x00, &demand);
-    //     printf("Current position: %d, Target position: %d\n", pos, target);
-    //     motor_rxpdo->control_word = 0x0;
-    //     motor_rxpdo->mode_of_operation = MODE_CSP;
-    //     motor_rxpdo->target_pos = currentPosition();
-    //     exchange();
-    //     while (1) {
-    //         exchange();
-    //         Status stat = check_status();
-    //         if (stat == Status::CONT){
-    //             continue;
-    //         }
-    //         if ((sign > 0 && pos > target)){
-    //             printf("here\n");
-    //             printf("sign: %d, pos: %d, target: %d\n", sign, pos, target);
-    //             motor_rxpdo->target_pos = currentPosition();
-    //             break;
-    //         }
-    //         motor_rxpdo->control_word = CONTROL_WORD_CSP;
-    //         motor_rxpdo->mode_of_operation = MODE_CSP;
-    //         motor_rxpdo->target_pos = pos;
-    //         pos += inc;
-    //     }
-    // }
-
     void takeInput(std::atomic<int>& target_pos, std::atomic<int>& inc, std::atomic<bool>&reached){
         while(1){
             int new_target;
@@ -348,7 +305,7 @@ public:
         int current_pos = currentPosition();
         while(1){
             exchange();
-            Status stat = check_status();
+            Status stat = checkStatus();
             if (stat == Status::CONT){
                 continue;
             }

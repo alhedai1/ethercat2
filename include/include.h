@@ -109,6 +109,10 @@ extern "C" {
 #define SET_BIT(val, bit) (val | BIT_VALUE(bit))
 #define CLEAR_BIT(val, bit) (val & ^BIT_VALUE(bit))
 
+#define CYCLE_TIME_MS 5
+#define CYCLE_TIME_US 5000
+#define NUM_MOTORS 2
+
 //////////// SDO read/write wrapper functions ///////////////
 
 int read_sdo_u8(uint16 slave, uint16 index, uint8 subindex, uint8 *data);
