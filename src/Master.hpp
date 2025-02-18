@@ -94,6 +94,7 @@ class EthercatMaster {
         thigh->setPdo();
     }
 
+    // Try taking input here and stopping when stop command is given
     void gait(double kneeAmp, double thighAmp, double frequency) {
         const double period = 1/frequency;
         const int kneeOffset = knee->currentPosition();
