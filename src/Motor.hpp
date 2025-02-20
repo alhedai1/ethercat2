@@ -200,7 +200,6 @@ public:
         printf("Error code: 0x%x\n", motor_txpdo->error_code);
     }
 
-    
     Status checkStatus() {
         // Check STATUS WORD
         uint16 status;
@@ -286,6 +285,39 @@ public:
             if ((motor_rxpdo->target_pos) == motor_txpdo->actual_pos){
                 break;
             }
+        }
+    }
+
+    void moveRelCSP(int relPos) { 
+        int pos = currentPosition();
+        int target = pos + relPos; // 5000, 10000
+        // int diff = position - currentPosition();
+        int diff = relPos;
+        int sign = diff/abs(diff);
+        int inc = sign*100;
+        int demand;
+        read_sdo_s32(motor_id, OD_POSITION_DEMAND, 0x00, &demand);
+        printf("Current position: %d, Target position: %d\n", pos, target);
+        motor_rxpdo->control_word = 0x0;
+        motor_rxpdo->mode_of_operation = MODE_CSP;
+        motor_rxpdo->target_pos = currentPosition();
+        exchange();
+        while (1) {
+            exchange();
+            Status stat = checkStatus();
+            if (stat == Status::CONT){
+                continue;
+            }
+            if ((sign > 0 && pos > target)){
+                printf("here\n");
+                printf("sign: %d, pos: %d, target: %d\n", sign, pos, target);
+                motor_rxpdo->target_pos = currentPosition();
+                break;
+            }
+            motor_rxpdo->control_word = CONTROL_WORD_CSP;
+            motor_rxpdo->mode_of_operation = MODE_CSP;
+            motor_rxpdo->target_pos = pos;
+            pos += inc;
         }
     }
 

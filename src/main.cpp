@@ -27,20 +27,22 @@ int main(int argc, char *argv[]) {
 
         // Set PDO pointers
         master->mapPDOStructs();
+        // knee->setPdo();
+        // thigh->setPdo();
 
         if (master->stateOP){
-            // Enable motors (thigh motor has initial jerk)
 
             // Move knee to home position
             int kneeHome = knee->getHomeOffset();
-            knee->moveRelPP(kneeHome, 100);
-
-            osal_usleep(500000);
+            knee->moveRelPP(kneeHome, 50);
+            // thigh->moveRelPP(-10000, 50);
 
             // master->takeInputs();
             // master->controlLoop();
+            // master->stopInputs();
+            // master->stopControl();
             
-            // master->gait(knee, thigh, 30000, 20000, 0.1);
+            master->sine(2, 30000, 20000, 0.1);
         }
 
         // Close EtherCAT master delete pointers

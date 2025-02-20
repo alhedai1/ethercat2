@@ -9,13 +9,15 @@ class EthercatMaster {
     int expectedWKC;
     char IOmap[4096];
     int chk = 200;
+    std::thread inputsThread;
+    std::thread controlThread;
 
     public: 
     EthercatMaster() {}
     ~EthercatMaster() {}
 
     bool stateOP = false;
-    bool done;
+    bool done = false;
     EthercatMotor* knee;
     EthercatMotor* thigh;
 
@@ -57,8 +59,8 @@ class EthercatMaster {
         expectedWKC = (ec_group[0].outputsWKC * 2) + ec_group[0].inputsWKC;
         std::cout << "Expected WKC: " << expectedWKC << std::endl;
 
-        ec_dcsync0(knee->getMotorId(), true, CYCLE_TIME_MS, 0);
-        ec_dcsync0(thigh->getMotorId(), true, CYCLE_TIME_MS, 0);
+        // ec_dcsync0(knee->getMotorId(), true, CYCLE_TIME_MS, 0);
+        // ec_dcsync0(thigh->getMotorId(), true, CYCLE_TIME_MS, 0);
 
         ec_send_processdata();
         ec_receive_processdata(EC_TIMEOUTRET);
@@ -94,17 +96,19 @@ class EthercatMaster {
         thigh->setPdo();
     }
 
-    // Try taking input here and stopping when stop command is given
-    void gait(double kneeAmp, double thighAmp, double frequency) {
+    // Follow sinusoidal trajectory w/ phase difference between motors to roughly simulate knee and thigh joints during gait
+    void sine(int steps, double kneeAmp, double thighAmp, double frequency) {
         const double period = 1/frequency;
         const int kneeOffset = knee->currentPosition();
         const int thighOffset = thigh->currentPosition();
-        double omega = 2 * M_PI * frequency; // Angular frequency
+        double omega = 2 * M_PI * frequency;
         double scale;
-        double ramp_time = 2.0;
-        auto start_time = std::chrono::steady_clock::now();
+        double scaleTime = 2.0;
         Status statk;
         Status statth;
+
+        double duration = steps * period;
+        auto startTime = std::chrono::steady_clock::now();
 
         while (1) {
             exchange();
@@ -114,17 +118,17 @@ class EthercatMaster {
                 continue;
             }
             auto now = std::chrono::steady_clock::now();
-            std::chrono::duration<double> elapsed = now - start_time;
-            double t = elapsed.count();
-            if (t >= (period + ((M_PI/4)/omega))){
-                knee->moveCspOnce(0);
-                thigh->moveCspOnce(0);
-                exchange();
+            std::chrono::duration<double> elapsedTime = now - startTime;
+            double t = elapsedTime.count();
+            if (t >= (duration + ((M_PI/4)/omega))){
+                // knee->moveCspOnce(0);
+                // thigh->moveCspOnce(0);
+                // exchange();
                 break;
             }
 
-            if (t < ramp_time){
-                scale = t / ramp_time;
+            if (t < scaleTime){
+                scale = t / scaleTime;
             }
             else {
                 scale = 1.0;
@@ -135,7 +139,7 @@ class EthercatMaster {
             if ((omega*t) >= (M_PI/4)){
                 knee->moveCspOnce(targetPosition1);
             }
-            if (t < period){
+            if (t < duration){
                 thigh->moveCspOnce(targetPosition2);
             }
         }
@@ -145,13 +149,14 @@ class EthercatMaster {
 
         done = false;
 
-        std::thread inputsThread([&](){
+        inputsThread = std::thread ([&](){
+            osal_usleep(500000);
             while(1){
                 char choice;
                 int kneeNewTarget;
                 int thighNewTarget;
 
-                std::cout << "Continue? [y/n]";
+                std::cout << "Continue? [y/n] ";
                 std::cin >> choice;
                 if (choice == 'n'){
                     done = true;
@@ -181,12 +186,15 @@ class EthercatMaster {
                 }
             }
         });
+    }
+
+    void stopInputs(){
         inputsThread.join();
     }
 
     void controlLoop() {
 
-        std::thread controlThread([&](){
+        controlThread = std::thread ([&](){
             int kneeCurrPos = knee->currentPosition();
             int thighCurrPos = thigh->currentPosition();
             knee->controlParam.targetPos = knee->currentPosition();
@@ -219,6 +227,10 @@ class EthercatMaster {
                 thigh->moveCspOnce(thighCurrPos);
             }
         });
+    }
+
+    void stopControl(){
+        controlThread.join();
     }
 
     void close() {
