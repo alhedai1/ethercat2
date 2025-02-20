@@ -8,6 +8,7 @@
 int main(int argc, char *argv[]) {
 
     if (argc > 1){
+        // Network interface name is given as argument when executing.
         char *ifname = argv[1];
 
         // Initialize Master
@@ -25,7 +26,7 @@ int main(int argc, char *argv[]) {
         // Transition to SafeOP then to OP
         master->transitionToOperational();
 
-        // Set PDO pointers
+        // Set PDO struct pointers
         master->mapPDOStructs();
 
         if (master->stateOP){

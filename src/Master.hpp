@@ -21,7 +21,7 @@ class EthercatMaster {
     EthercatMotor* knee;
     EthercatMotor* thigh;
 
-    // Initialize EtherCAT
+    // Initialize EtherCAT and scan for slaves
     void init(char *ifname) {
         if (ec_init(ifname)) {
             std::cout << "EtherCAT initialized" << std::endl;
@@ -45,7 +45,8 @@ class EthercatMaster {
         }        
     }
 
-    void transitionToOperational() { // return 1 if successful, 0 if not
+    // Transition slaves from PreOperational to SafeOperational to Operational. Map PDO objects to IOmap.
+    void transitionToOperational() {
         // PreOP to SafeOP
         ec_config_map(&IOmap);
         ec_configdc();
@@ -91,6 +92,7 @@ class EthercatMaster {
         stateOP = true;
     }
 
+    // Check setPDO in Motor.hpp
     void mapPDOStructs(){
         knee->setPdo();
         thigh->setPdo();
@@ -142,6 +144,7 @@ class EthercatMaster {
         }
     }
 
+
     void takeInputs(){
 
         done = false;
@@ -185,15 +188,18 @@ class EthercatMaster {
         });
     }
 
+    // Stop the inputs thread
     void stopInputs(){
         inputsThread.join();
     }
-
+ 
     void controlLoop() {
 
+        // Start thread to send CSP commands to motors
         controlThread = std::thread ([&](){
             int kneeCurrPos = knee->currentPosition();
             int thighCurrPos = thigh->currentPosition();
+            // Set initial target position to motor's current position so motor doesn't suddenly move
             knee->controlParam.targetPos = knee->currentPosition();
             thigh->controlParam.targetPos = thigh->currentPosition();
             while(1){
@@ -226,10 +232,12 @@ class EthercatMaster {
         });
     }
 
+    // Stop the control thread
     void stopControl(){
         controlThread.join();
     }
 
+    // Close the etherCAT connection
     void close() {
         ec_close();
         std::cout << "EtherCAT closed" << std::endl;
