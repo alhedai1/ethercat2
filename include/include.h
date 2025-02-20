@@ -140,6 +140,7 @@ bool stateQuickStop(const uint16& status);
 
 #include <cstdio>
 
+// 
 typedef struct PACKED
 {
         uint16 control_word;

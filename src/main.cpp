@@ -27,8 +27,6 @@ int main(int argc, char *argv[]) {
 
         // Set PDO pointers
         master->mapPDOStructs();
-        // knee->setPdo();
-        // thigh->setPdo();
 
         if (master->stateOP){
 
@@ -37,12 +35,12 @@ int main(int argc, char *argv[]) {
             knee->moveRelPP(kneeHome, 50);
             // thigh->moveRelPP(-10000, 50);
 
-            // master->takeInputs();
-            // master->controlLoop();
-            // master->stopInputs();
-            // master->stopControl();
+            master->takeInputs();
+            master->controlLoop();
+            master->stopInputs();
+            master->stopControl();
             
-            master->sine(2, 30000, 20000, 0.1);
+            // master->sine(2, 30000, 20000, 0.1);
         }
 
         // Close EtherCAT master delete pointers

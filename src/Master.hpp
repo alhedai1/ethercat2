@@ -121,9 +121,6 @@ class EthercatMaster {
             std::chrono::duration<double> elapsedTime = now - startTime;
             double t = elapsedTime.count();
             if (t >= (duration + ((M_PI/4)/omega))){
-                // knee->moveCspOnce(0);
-                // thigh->moveCspOnce(0);
-                // exchange();
                 break;
             }
 
@@ -173,12 +170,12 @@ class EthercatMaster {
 
                 if (kneeNewTarget != 0){
                     // kneeNewTarget = DEG_TO_INC_KNEE(kneeNewTarget);
-                    knee->controlParam.inc = kneeNewTarget > 0 ? 10 : -10;
+                    knee->controlParam.inc = kneeNewTarget > 0 ? 30 : -30;
                     knee->controlParam.targetPos.store(knee->controlParam.targetPos.load() + kneeNewTarget);
                     knee->controlParam.reached = false;
                 }
                 if (thighNewTarget != 0){
-                    thigh->controlParam.inc = thighNewTarget > 0 ? 10 : -10;
+                    thigh->controlParam.inc = thighNewTarget > 0 ? 30 : -30;
                     thigh->controlParam.targetPos.store(thigh->controlParam.targetPos.load() + thighNewTarget);
                     thigh->controlParam.reached = false;
                 }
